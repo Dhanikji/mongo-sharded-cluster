@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"userId":"hashed"},"name":"userId_hashed"}],"uuid":"db62c457444f4573a9ceb874800a62ee","collectionName":"hashDemo","type":"collection"}

@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"rollno":"hashed"},"name":"rollno_hashed"}],"uuid":"e5c40bb9e9ed478e85a890a0db81cf01","collectionName":"hashCol","type":"collection"}

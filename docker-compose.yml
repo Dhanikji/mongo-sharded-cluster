@@ -1,0 +1,216 @@
+version: "3.8"
+
+services:
+  # ---------------- CONFIG SERVER REPLSET ----------------
+  cfg1:
+    image: mongo:6.0
+    container_name: mongo-cfg1
+    command: [ "--configsvr", "--replSet", "cfgRepl",
+               "--port=27019", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - cfg1_data:/data/configdb
+    ports:
+      - "27019:27019"
+
+  cfg2:
+    image: mongo:6.0
+    container_name: mongo-cfg2
+    command: [ "--configsvr", "--replSet", "cfgRepl",
+               "--port=27019", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - cfg2_data:/data/configdb
+
+  cfg3:
+    image: mongo:6.0
+    container_name: mongo-cfg3
+    command: [ "--configsvr", "--replSet", "cfgRepl",
+               "--port=27019", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - cfg3_data:/data/configdb
+
+  # ---------------- SHARD 1 ----------------
+  s1a:
+    image: mongo:6.0
+    container_name: mongo-shard1a
+    command: [ "--shardsvr", "--replSet", "shard1rs",
+               "--port=27018", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - shard1a_data:/data/db
+    ports:
+      - "27018:27018"
+
+  s1b:
+    image: mongo:6.0
+    container_name: mongo-shard1b
+    command: [ "--shardsvr", "--replSet", "shard1rs",
+               "--port=27018", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - shard1b_data:/data/db
+
+  s1c:
+    image: mongo:6.0
+    container_name: mongo-shard1c
+    command: [ "--shardsvr", "--replSet", "shard1rs",
+               "--port=27018", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - shard1c_data:/data/db
+
+  # ---------------- SHARD 2 ----------------
+  s2a:
+    image: mongo:6.0
+    container_name: mongo-shard2a
+    command: [ "--shardsvr", "--replSet", "shard2rs",
+               "--port=27020", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - shard2a_data:/data/db
+    ports:
+      - "27020:27020"
+
+  s2b:
+    image: mongo:6.0
+    container_name: mongo-shard2b
+    command: [ "--shardsvr", "--replSet", "shard2rs",
+               "--port=27020", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - shard2b_data:/data/db
+
+  s2c:
+    image: mongo:6.0
+    container_name: mongo-shard2c
+    command: [ "--shardsvr", "--replSet", "shard2rs",
+               "--port=27020", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - shard2c_data:/data/db
+
+  # ---------------- SHARD 3 ----------------
+  shard3a:
+    image: mongo:6.0
+    container_name: mongo-shard3a
+    command: [ "--shardsvr", "--replSet", "shard3rs",
+               "--port=27030", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - shard3a_data:/data/db
+    ports:
+      - "27030:27030"
+
+  shard3b:
+    image: mongo:6.0
+    container_name: mongo-shard3b
+    command: [ "--shardsvr", "--replSet", "shard3rs",
+               "--port=27030", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - shard3b_data:/data/db
+    ports:
+      - "27031:27030"
+
+  shard3c:
+    image: mongo:6.0
+    container_name: mongo-shard3c
+    command: [ "--shardsvr", "--replSet", "shard3rs",
+               "--port=27030", "--bind_ip_all",
+               "--keyFile=/secrets/mongo-keyfile" ]
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+      - shard3c_data:/data/db
+    ports:
+      - "27032:27030"
+
+  # ---------------- MONGOS ROUTER ----------------
+  mongos:
+    image: mongo:6.0
+    container_name: mongo-mongos
+    depends_on:
+      - cfg1
+      - cfg2
+      - cfg3
+    entrypoint:
+      - bash
+      - -c
+      - |
+        echo "Waiting 20s..." && \
+        sleep 20 && \
+        exec mongos --configdb cfgRepl/mongo-cfg1:27019,mongo-cfg2:27019,mongo-cfg3:27019 \
+        --bind_ip_all \
+        --port=27017 \
+        --keyFile=/secrets/mongo-keyfile
+    volumes:
+      - ./secrets/mongo-keyfile:/secrets/mongo-keyfile:ro
+    ports:
+      - "27017:27017"
+
+networks:
+  default:
+    name: mongo-net
+
+volumes:
+  cfg1_data:
+  cfg2_data:
+  cfg3_data:
+  shard1a_data:
+  shard1b_data:
+  shard1c_data:
+name: mongo-monitoring
+
+services:
+  mongodb-exporter:
+    image: percona/mongodb_exporter:0.40
+    container_name: mongodb-exporter
+    command:
+      - "--mongodb.uri=mongodb://exporter:exporter123@mongo-mongos:27017/admin?authSource=admin"
+      - "--collect-all"
+      - "--compatible-mode"
+    ports:
+      - "9216:9216"
+    networks:
+      - mongo-net
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - mongo-net
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - mongo-net
+
+networks:
+  mongo-net:
+    external: true
+  shard2a_data:
+  shard2b_data:
+  shard2c_data:
+  shard3a_data:
+  shard3b_data:
+  shard3c_data:
+
